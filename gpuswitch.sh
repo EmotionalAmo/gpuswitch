@@ -73,10 +73,19 @@ gpu_switch_status_ac(){
 }
 
 battery_level_detect(){
-    if [ ! -n  "$bt_level_info"];then
+    if [ ! -n "$bt_level_info" ]; then
         battery_level='未知'
-    elif [ "$bt_level_info" == '健康' ];then
+    elif [ "$bt_level_info" == 'Great' ]; then
         battery_level='健康'
+    fi
+}
+
+battery_cycle_detect(){
+    bt_cyc_len=${#bt_cyc}
+    if [ $bt_cyc_len == '3' ]; then
+        bt_cyc_ct="${bt_cyc} "
+    else
+        bt_cyc_ct="${bt_cyc}"
     fi
 }
 
@@ -100,8 +109,8 @@ power_status(){
         echo "     当前功率：\033[36m${wattage}  W\033[0m    ┃"
         echo "┃   当前电压：\033[36m$(echo "scale=1; ${voltage} / 1000" | bc) V\033[0m\c"
         echo "     当前电流：\033[36m$(echo "scale=1; ${current} / 1000" | bc) A\033[0m    ┃"
-        echo "┃   电池健康：\033[36m${battery_level}\033[0m                      ┃"
-        # echo "   循环计数：\033[36m未知\033[0m     ┃"
+        echo "┃   电池健康：\033[36m${battery_level}\033[0m\c" #                      ┃"
+        echo "       循环计数：\033[36m${bt_cyc_ct}\033[0m     ┃"
         echo "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫"
     fi
 }
@@ -134,6 +143,9 @@ gpu_switch_mode(){
 			clear
             ;;
         5)
+            break
+            ;;
+        q)
             break
 	esac
 }
@@ -191,7 +203,11 @@ do
 #### Pretreatment
     custom_gpu_info=$(pmset -g custom | grep gpuswitch | tr -d ' \nGgPpUuSsWwIiTtCcHh')
     adapter_info=$(pmset -g adapter)
-    # bt_level_info=$(pmset -g sysload | grep battery | tr -d ' -')
+    bt_info_raw=$(pmset -g sysload | grep 'battery' | tr -d ' -')
+    bt_level_info=${bt_info_raw:13}
+    bt_cyc_raw=$(pmset -g rawbatt | grep Cycles)
+    bt_cyc_dat=${bt_cyc_raw##*Cycles=}
+    bt_cyc=${bt_cyc_dat%/1000; Location*}
     version='1.1'
 
 #### Get Status
@@ -203,6 +219,9 @@ do
 
 #### Determine battery level
     battery_level_detect
+
+#### Determine battery cycle
+    battery_cycle_detect
 
 #### Determine the power status
 	power_status
