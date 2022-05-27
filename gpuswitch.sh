@@ -1,19 +1,10 @@
 ##########################################################################
 # File Name: gpuswitch.sh
 # Author: EmotionalAmo
-# mail: emotionalamo@starpin.cn 
+# mail: emotionalamo@starpin.cn
 # Created Time: Sat  7/11 15:46:07 2020
 #########################################################################
 #!/bin/bash
-
-#### New Function
-# pmset -g sysload
-# - battery level = Great
-# pmset -g ps
-# INVOKE: pmset -g rawbatt
-# 07/13/20 16:10:51
-#  AC; Charging; 32%; Cap=2721: FCC=8434; Design=8790; Time=3:59; 1619mA; Cycles=7/1000; Location=0; 
-#  Polled boot=07/13/20 10:14:40; Full=07/13/20 16:05:48; User visible=07/13/20 16:10:47
 
 #### Function
 detect_user_level(){
@@ -23,6 +14,7 @@ detect_user_level(){
 	echo "┃  当前用户等级：\033[32mUser\033[0m\c"
 	echo "  请使用\033[31mRoot\033[0m用户运行   ┃"
 	echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+    sudo $0
     exit
 	else
 		clear
@@ -73,10 +65,15 @@ gpu_switch_status_ac(){
 }
 
 battery_level_detect(){
-    if [ ! -n "$bt_level_info" ]; then
-        battery_level='未知'
-    elif [ "$bt_level_info" == 'Great' ]; then
+    counter=`expr $bt_cyc / 10`
+    if [ $counter -le 30 ]; then
         battery_level='健康'
+    elif [ $counter -le 60 ]; then
+        battery_level='一般'
+    elif [ $counter -le 90 ]; then
+        battery_level='差'
+    else
+        battery_level='未知'
     fi
 }
 
@@ -198,17 +195,18 @@ exit_echo(){
 
 detect_user_level
 
+# Create Battery_Info Script
+echo 'pmset -g rawlog > .tmp' > .tmp.sh
+chmod +x .tmp.sh
+
 while True
 do
 #### Pretreatment
     custom_gpu_info=$(pmset -g custom | grep gpuswitch | tr -d ' \nGgPpUuSsWwIiTtCcHh')
     adapter_info=$(pmset -g adapter)
-    bt_info_raw=$(pmset -g sysload | grep 'battery' | tr -d ' -')
-    bt_level_info=${bt_info_raw:13}
-    bt_cyc_raw=$(pmset -g rawbatt | grep Cycles)
-    bt_cyc_dat=${bt_cyc_raw##*Cycles=}
-    bt_cyc=${bt_cyc_dat%/1000; Location*}
-    version='1.1'
+    bt_level_info=$(pmset -g sysload | grep 'battery' | tr -d ' -' | sed 's/batterylevel=//g')
+    bt_cyc=$(pmset -g rawbatt | grep -Eo 'Cycles=([0-9]+)' | sed 's/Cycles=//g')
+    version='1.5'
 
 #### Get Status
 	clear
